@@ -1,0 +1,33 @@
+# Virtual Environment
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE / Editor specific
+.vscode/
+.idea/
+*.DS_Store
+
+# Database file
+*.db
+*.sqlite
+*.sqlite3
+athena_chat.db # Specifically your DB file
+
+# Environment variables
+.env
+
+# Log files
+*.log
+
+# Other
+.mypy_cache/
+.pytest_cache/
+build/
+dist/
+*.egg-info/

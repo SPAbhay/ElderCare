@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+streamlit
+langchain
+langchain-community
+langchain-ollama
+langgraph
+sqlalchemy
+pydantic
+python-dotenv
+python-dateutil
+alembic
+redis
+langchain-openai
+langgraph-checkpoint-sqlite
