@@ -13,3 +13,4 @@ alembic
 redis
 langchain-openai
 langgraph-checkpoint-sqlite
+langchain-mcp-adapters

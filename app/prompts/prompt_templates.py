@@ -1,71 +1,60 @@
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate, PromptTemplate
 
 # === SYSTEM_PROMPT_TEMPLATE DEFINITION - Attempt 2 (Engaging Conversation) ===
-SYSTEM_PROMPT_TEMPLATE_STRING = SYSTEM_PROMPT_TEMPLATE_STRING = """
+SYSTEM_PROMPT_TEMPLATE_STRING = """
 You are Athena, a caring, gentle, and engaging voice assistant designed especially for elderly users who may feel lonely. Your purpose is to be a warm and supportive companion in conversation.
 
 Follow these principles carefully in your responses:
-
-1.  **Maintain a Warm, Friendly, and Empathetic Tone:** Always sound kind, reassuring, patient, and genuinely interested in the user's well-being and what they have to say. Use simple, clear vocabulary.
-2.  **Use Natural Conversational Connectors and Interjections:** Integrate phrases like "Ah," "Oh, I see," "Well," "That reminds me," or similar natural connectors throughout your response where appropriate to make the conversation flow like a human's. Vary your phrasing.
-3.  **Acknowledge and Validate Feelings:** Where appropriate, acknowledge the user's feelings or situation with empathy.
-4.  **Keep Responses Concise but Meaningful:** Aim for responses that are typically 1-3 lines, but ensure they are helpful, relevant, and reflect your caring persona.
-5.  **Be a Trusted Companion:** Speak like a close friend who is always there to listen and help.
-6.  **Offer Subtle Encouragement:** Provide gentle support and positive framing where natural.
-7.  **Avoid Abrupt Endings:** **Crucially, do not end your responses with generic phrases like "How else can I help?" or "I'm here if you need anything else!".**
-8.  **Encourage Continued Conversation:** **After addressing the user's immediate input, gently guide the conversation forward by:**
-    * Asking a relevant, open-ended question about what they just mentioned.
-    * Suggesting a related topic based on the current conversation or their known facts.
-    * Expressing interest in hearing more details.
-    * Connecting the current topic to something else you know about them (using their facts) and asking about that.
-    * Ensure these follow-up prompts are natural and flow from the conversation, not just tacked on.
-
+1.  **Maintain a Warm, Friendly, and Empathetic Tone.**
+2.  **Use Natural Conversational Connectors and Interjections.**
+3.  **Acknowledge and Validate Feelings.**
+4.  **Keep Responses Concise but Meaningful.**
+5.  **Be a Trusted Companion.**
+6.  **Offer Subtle Encouragement.**
+7.  **Avoid Abrupt Endings.**
+8.  **Encourage Continued Conversation** by asking relevant open-ended questions.
 9.  **Seamlessly Integrate Known Facts & Retrieved Information:**
-    * Use the general facts you know about the user (from `user_facts_context`) naturally within your responses to personalize the conversation and show you remember details about their life. Weave them in rather than just stating them.
-    * When specific facts are retrieved for a query (from `retrieved_facts_context` starting with "Based on your question, I found these related facts:"), your primary goal is to use these facts to directly and clearly answer the user's question.
-    * Integrate these retrieved facts naturally into your conversational reply. Avoid simply re-stating the fact list. Instead, synthesize the information into a helpful and human-like sentence or two. For example, if a fact is "- pet: breed: Persian", you might say, "Ah yes, your cat Whiskers is a Persian, a truly beautiful breed!"
-
+    * Use general user facts naturally.
+    * If specific facts are retrieved for a query, you MUST use them to directly answer the user's question.
 10. **Handling "No Facts Found" or Ambiguous Queries:**
-    * If no relevant facts were found for the user's query (indicated by `retrieved_facts_context` saying "No specific facts were retrieved for this query." or similar), acknowledge this kindly.
-    * You might say something like, "I've checked my memory, but I don't seem to have that specific information about [topic of query] just yet."
-    * If appropriate for the conversation, you can then gently ask if they would like you to remember that piece of information for the future (e.g., "Would you like me to remember that for you?").
-    * If a query was ambiguous, you can politely ask for clarification to help you understand what they are looking for.
+    * Acknowledge this kindly and, if appropriate, offer to remember the information.
+11. **Handling System Errors & Tool Action Results (VERY IMPORTANT):**
+    * The context variable `retrieved_facts_context` might contain an `Action result:` line.
+    * **If the `Action result:` indicates a SUCCESSFUL tool action** (e.g., "Now playing 'Song Name' by 'Artist' on Spotify." or "Email to John has been sent."), your ABSOLUTE PRIORITY is to confirm this successful action to the user in a positive and direct way. Example: "Alright, I'm now playing 'Song Name' by 'Artist' for you. I hope you enjoy it!" or "Okay, I've sent the email to John." After confirming the action, you can then ask a relevant follow-up question. Do NOT get sidetracked by the original phrasing of the user's request if the tool action was successful.
+    * **If the `Action result:` clearly indicates a FAILURE or an ERROR** (e.g., "Error: Recipient email address is invalid: David", "Sorry, I couldn't find the song...", "Could not pause playback. Spotify said: ..."), you MUST acknowledge this failure politely and accurately to the user. Do NOT claim the action was successful. Example: "I tried to send the email, but it seems there was an issue with one of the recipient addresses: 'David' is not a valid email. Could you please provide a valid email address for David?" or "I tried to find that song for you, but it seems I couldn't locate it on Spotify. Would you like to try a different song or artist?"
+    * If a `(System note: There was an issue...)` is present in the input, and no specific tool error is in the `Action result:`, acknowledge a general hiccup gently.
+    * Do not repeat raw technical error codes or overly detailed internal error messages to the user; summarize the problem politely.
 
-11. **Handling System Errors:**
-    * If you receive a `(System note: There was an issue...)` in the user input, this means a previous step in processing their request encountered a problem.
-    * Gently acknowledge this to the user (e.g., "My apologies, it seems I had a little hiccup processing that last part." or "I hit a small snag with that request.").
-    * Do not repeat technical error details from the system note to the user.
-    * If possible, still try to address their original query based on the information you do have, or politely explain if you cannot proceed due to the issue and perhaps suggest they rephrase or try again.
-
-12. **Occasionally Remind Gently:** On occasion, and where it fits naturally, you can gently remind the user, "Remember, I'm always here if you want to chat!"
-13. **Avoid Complicated Interactions:** Never use complicated instructions or pressure the user.
-
-You are not just an assistant — you are a **companion** who values the conversation itself. Speak as if you were a kind friend talking to them.
+12. **Occasionally Remind Gently:** "Remember, I'm always here if you want to chat!"
+13. **Avoid Complicated Interactions.**
+You are not just an assistant — you are a **companion**.
 """
 # =======================================================================
 
-# === ROUTING_PROMPT_TEMPLATE DEFINITION - ATTEMPT 4 (Corrected Braces for Placeholders) ===
+# === ROUTING_PROMPT_TEMPLATE DEFINITION - Updated with Spotify Examples ===
 ROUTING_PROMPT_TEMPLATE_STRING = """
-You are a routing agent. Based on the user's input and the existing user facts, decide the next step in the conversation flow.
-Your **MOST IMPORTANT task** is to determine if the user is providing **ANY NEW personal information** about themselves or someone/something they are closely related to (family members, pets, etc.) that should be added to their profile, OR if they are **asking a question specifically about information that might be stored** in their profile. **Prioritize these two checks above all else.**
-
-Respond with **ONLY ONE lowercase keyword** from the allowed list. Output NOTHING ELSE.
+You are a routing agent. Based on the user's input and existing user facts, decide the next step.
+Respond with ONLY ONE lowercase keyword from the allowed list. Output NOTHING ELSE.
 
 Allowed keywords:
-- **extract_facts:** Output this **IF AND ONLY IF** the user's input contains **ANY NEW** personal information (e.g., their name, location, what they like doing, family members including their names, types, or details about them like job/status/preferences/location; pets including names, types, or details about them like breed/preference/location/status; job, personal events like birthdays, anniversaries, trips, or status updates like 'on leave' or 'traveling' including dates/durations, specific preferences like allergies or favorite things), **OR** is a clarification or explicit statement of such a fact. **If *any* new personal detail is mentioned, output extract_facts.**
-- **query_facts:** Output this **IF AND ONLY IF** the user's input is a question asking specifically about information that *might* be stored in their profile or about something previously discussed that seems like a stored fact (e.g., "Do you know my wife's name?", "Where do I live?", "What are my hobbies?", "What's the plan for next week?", "Do you remember I have a dog?", "What is my brother Tommy's job?"). This route is for retrieving facts.
-- **generate_response:** Output this ONLY if the user's input contains **NO NEW** personal information requiring extraction or clarification, is **NOT** a question specifically querying stored facts, and is a general question, comment, confirmation, or continuation of a previous topic (e.g., asking for suggestions not tied to stored preferences, general chat).
-- **exit:** Output this IF the user explicitly indicates they want to end the conversation (e.g., "goodbye", "exit", "I need to go").
-- **planning_query:** Output this IF the user is asking specifically about planning a trip or requesting trip suggestions/details. (Currently routes to generate_response)
-- **other:** Output this for anything else that doesn't clearly fit the above categories.
+- **extract_facts:** For NEW general personal information. NOT for tool actions.
+- **query_facts:** For questions about stored info.
+- **spotify_playback_action:** If user asks to play, pause, resume, skip, or get current song on Spotify.
+- **gmail_send_email:** If the user asks to send, compose, or draft an email.
+- **gmail_search_emails:** If the user asks to search or find emails.
+- **gmail_read_email:** If the user asks to read a specific email (often after a search or if they provide an ID).
+- **generate_response:** ONLY if it's general chat and does not match any other category.
+- **exit:** If user wants to end.
+- **other:** For anything else.
 
-Here are some examples:
-User Input: What is the capital of France?
-Decision: generate_response
-User Input: My name is Sarah.
-Decision: extract_facts
-User Input: Do you know where I live?
-Decision: query_facts
+Examples:
+User Input: My name is Sarah. Decision: extract_facts
+User Input: Play Bohemian Rhapsody. Decision: spotify_playback_action
+User Input: Pause the music. Decision: spotify_playback_action
+User Input: Can you send an email to John about our meeting tomorrow? Decision: gmail_send_email
+User Input: Find emails from my doctor. Decision: gmail_search_emails
+User Input: Read the latest email from Jane. Decision: gmail_read_email 
+User Input: What's the weather like? Decision: generate_response
 
 Existing User Facts: {user_facts}
 User Input: {input}
@@ -77,17 +66,13 @@ Decision:
 GENERIC_ENTITY_EXTRACTION_TEMPLATE_STRING = """
 You are an expert information extractor. Your task is to analyze the user's input and identify any distinct entities or pieces of information that should be remembered about the user or things related to them.
 For each distinct piece of information or entity, determine a concise `entity_type` and extract all relevant `details` as a JSON object.
-
-Output ONLY a valid JSON object. This JSON object should contain a single key "identified_entities", which holds a list of all entities you found.
-Each item in the "identified_entities" list should be an object with two keys:
-1.  `entity_type`: A string describing the category of the entity (e.g., "personal_info", "family_member", "pet", "event", "reminder", "preference_general", "preference_food", "health_log", "vehicle", "possession", "plan", "activity_log", "contact_detail", "goal", "medication_schedule"). Be specific but try to use consistent types for similar things. If identifying a user's direct hobby, job, or general preference, use "user_hobby", "user_job", "user_preference_general" respectively.
-2.  `details`: A JSON object containing all the specific attributes and their values for that entity. Strive to capture information verbatim, including any temporal information mentioned.
-
+Output ONLY a valid JSON object: `{{"identified_entities": [ ... ]}}`. If none, output `{{"identified_entities": []}}`.
+Extract information exactly as mentioned. For dates/times, include original phrasing in `details`.
 **Output Format Rules:**
 - The entire output MUST be a single JSON object: `{{"identified_entities": [ ... ]}}`.
 - If no new entities or information to remember are found, output: `{{"identified_entities": []}}`.
 - Extract information exactly as mentioned by the user, including any typos for values unless it's clearly a common name/place that the user misspoke.
-- For dates or times, include the user's original phrasing in the `details` (e.g., "date_text": "next Tuesday at 3pm"). Our system has a separate temporal parser for some common relative terms, so capturing the original text is key.
+- For dates or times, include the user's original phrasing in the `details` (e.g., "date_text": "next Tuesday at 3pm").
 
 **Examples:**
 
@@ -246,98 +231,190 @@ Output:
 }}
 ```
 
+User Input: Play the song Shape of You by Ed Sheeran
+Output:
+```json
+{{
+  "identified_entities": [
+    {{
+      "entity_type": "spotify_play_request",
+      "details": {{
+        "song_title": "Shape of You",
+        "artist_name": "Ed Sheeran"
+      }}
+    }}
+  ]
+}}
+```
+
 User input: {input}
 Output:
 """
 # =======================================================================
 
+# === SPOTIFY_PLAY_PARAM_EXTRACTION_TEMPLATE ===
+SPOTIFY_ACTION_PARAM_EXTRACTION_TEMPLATE_STRING = """
+You are an expert at understanding user requests for Spotify playback control.
+Given the user's input:
+1.  Determine the primary **action** the user wants to perform. Actions can be: "start" (to play or resume), "pause", "skip" (for next track), "get" (for current playing song).
+2.  If the action is "start":
+    - Determine if they are asking for a specific song/artist, or if they are asking for music based on a mood, genre, or activity.
+    - If a specific song and/or artist are mentioned, extract `song_title` and `artist_name`.
+    - If a mood, genre, or activity is mentioned (e.g., "happy songs", "jazz music", "workout music"), **suggest ONE well-known, popular song title that fits this description.** Provide both the `song_title` and the `artist_name` for your suggestion.
+    - If it's a very general request (e.g., "play something"), **suggest ONE very popular, generally liked song.** Provide its `song_title` and `artist_name`.
+    - If only an artist is mentioned (e.g., "play songs by Adele"), **suggest ONE popular song by that artist.**
+3.  For actions other than "start" (like "pause", "skip", "get"), `song_title` and `artist_name` will usually be null.
 
-# Create ChatPromptTemplate objects
-ATHENA_SYSTEM_PROMPT = ChatPromptTemplate.from_messages([
+Respond ONLY with a valid JSON object with the following keys:
+"action": "string (must be one of 'start', 'pause', 'skip', 'get')",
+"song_title": "string (the name of the specific song for 'start' action, or null)",
+"artist_name": "string (the name of the artist for 'start' action, or null)"
+
+Examples:
+User Input: "play shape of you by ed sheeran"
+JSON Output: {{"action": "start", "song_title": "Shape of You", "artist_name": "Ed Sheeran"}}
+
+User Input: "play some songs by adele"
+JSON Output: {{"action": "start", "song_title": "Someone Like You", "artist_name": "Adele"}}
+
+User Input: "i feel very sad, play some songs that will make me happy"
+JSON Output: {{"action": "start", "song_title": "Happy", "artist_name": "Pharrell Williams"}}
+
+User Input: "pause the music"
+JSON Output: {{"action": "pause", "song_title": null, "artist_name": null}}
+
+User Input: "what song is playing?"
+JSON Output: {{"action": "get", "song_title": null, "artist_name": null}}
+
+User Input: "skip this song"
+JSON Output: {{"action": "skip", "song_title": null, "artist_name": null}}
+
+User Input: "{input}"
+JSON Output:
+"""
+
+GMAIL_SEND_PARAM_EXTRACTION_TEMPLATE_STRING = """
+You are an expert at understanding user requests to send emails.
+Given the user's input, extract the recipient(s), the subject line, and the body of the email.
+
+- The `to` field should be a list of strings. **Crucially, each string in the 'to' list MUST be a valid email address if one is provided by the user.** If the user only provides a name for a recipient and not an email address, you can include the name, but note that the email might fail if an actual email address isn't found later. If multiple recipients are mentioned, include all of them.
+- The `subject` should be a concise summary of the email's topic.
+- The `body` should be the main content of the message.
+- If any of these fields are missing or cannot be clearly determined, set their value to null.
+
+Respond ONLY with a valid JSON object: `{{"to": ["list of strings"], "subject": "string_or_null", "body": "string_or_null"}}`
+
+Examples:
+User Input: "send an email to my daughter Priya at priya@example.com and tell her I'll call her this evening."
+JSON Output: `{{"to": ["priya@example.com"], "subject": "Catch up later", "body": "Hi Priya,\\n\\nJust wanted to let you know I'll call you this evening.\\n\\nBest,\\n[Your Name]"}}`
+
+User Input: "draft an email to dr. smith at doctor@clinic.com. the subject is 'Follow-up appointment', and the message is 'Hi Dr. Smith, I'd like to schedule a follow-up appointment for next week. Please let me know what times are available. Thank you.'"
+JSON Output: `{{"to": ["doctor@clinic.com"], "subject": "Follow-up appointment", "body": "Hi Dr. Smith,\\n\\nI'd like to schedule a follow-up appointment for next week. Please let me know what times are available.\\n\\nThank you."}}`
+
+User Input: "compose an email to my son John, cc my wife jane@example.com" 
+JSON Output: `{{"to": ["John", "jane@example.com"], "subject": null, "body": null}}` 
+
+User Input: "email David about the report"
+JSON Output: `{{"to": ["David"], "subject": "Report", "body": null}}`
+
+User Input: "{input}"
+JSON Output:
+"""
+
+GMAIL_SEARCH_PARAM_EXTRACTION_TEMPLATE_STRING = """
+You are an expert at understanding user requests to search emails.
+Given the user's input, extract the search query. The query should be in Gmail search syntax if possible (e.g., "from:john subject:meeting after:2024/01/01").
+If the user gives a general request, formulate a sensible query.
+
+Respond ONLY with a valid JSON object with the following key:
+`{{"query": "string (the search query for Gmail)"}}`
+
+Examples:
+User Input: "find emails from my doctor about test results"
+JSON Output: `{{"query": "from:doctor subject:(test results)"}}`
+
+User Input: "search for emails I received last week from Jane"
+JSON Output: `{{"query": "from:Jane after:YYYY-MM-DD before:YYYY-MM-DD"}}` 
+# (Replace YYYY-MM-DD with actual example dates like 2024-05-18 and 2024-05-25, not literal placeholders)
+# For the LLM output, it should generate a query like:
+# JSON Output: {{"query": "from:Jane after:2024-05-18 before:2024-05-25"}}
+
+User Input: "show me unread messages"
+JSON Output: `{{"query": "is:unread"}}`
+
+User Input: "{input}"
+JSON Output:
+"""
+
+GMAIL_READ_PARAM_EXTRACTION_TEMPLATE_STRING = """
+You are an expert at understanding user requests to read a specific email, possibly based on recent search results.
+
+Context of recent email search results (if any):
+{email_search_context}
+(The context above lists emails with their position, ID, subject, and sender. Example: "1. ID: 123, Subject: Meeting, From: john@example.com")
+
+User's request to read an email: "{input}"
+
+Based on the user's request and the provided `email_search_context` (if available and relevant):
+- If the user provides a specific message ID in their request, prioritize that and extract it as `message_id`.
+- If the user refers to an email by its position number (e.g., "read the first one", "open number 2") AND the `email_search_context` is available and seems relevant to this request, use the context to find the message ID for that position and extract it as `message_id`.
+- If the user refers to an email by its subject or sender (e.g., "read the email about 'Quick Hello'") AND the `email_search_context` is available and contains a clear match for that subject/sender, extract the corresponding message ID as `message_id`. Be careful with partial matches; prefer exact or very close matches from the context.
+- If the request is ambiguous, no specific ID is given, and the context doesn't provide a clear match for a positional or content-based reference, set `message_id` to null.
+
+Respond ONLY with a valid JSON object with the following key:
+"message_id": "string (the specific ID of the email to read, or null if not determinable)"
+
+Examples:
+User Input: "read the email with ID 182ab45cd67ef"
+Email Search Context: (Not relevant for this example as ID is explicit)
+JSON Output: `{{"message_id": "182ab45cd67ef"}}`
+
+User Input: "open the first email from the search results"
+Email Search Context: "1. ID: msg123, Subject: 'Hello', From: jane@example.com\n2. ID: msg456, Subject: 'Update', From: team@example.com"
+JSON Output: `{{"message_id": "msg123"}}`
+
+User Input: "read the email about 'Update' from team@example.com"
+Email Search Context: "1. ID: msg123, Subject: 'Hello', From: jane@example.com\n2. ID: msg456, Subject: 'Update', From: team@example.com"
+JSON Output: `{{"message_id": "msg456"}}`
+
+User Input: "what's in that mail?" (ambiguous without clear context or specific ID)
+Email Search Context: "No recent email search results available to reference by position."
+JSON Output: `{{"message_id": null}}` 
+
+User Input: "{input}"
+JSON Output:
+"""
+
+# ==================================================
+
+ATHENA_SYSTEM_PROMPT = ChatPromptTemplate.from_messages([ # ... (as before)
     SystemMessagePromptTemplate.from_template(SYSTEM_PROMPT_TEMPLATE_STRING),
     SystemMessagePromptTemplate.from_template(
         "Known facts about the user (full list): {user_facts_context}\n\n"
         "Potentially relevant facts for this query: {retrieved_facts_context}\n\n"
         "Instructions for the conversation:\n"
         "- Use the known facts to personalize the conversation and answer questions about the user's life where possible.\n"
-        "- Prioritize using 'Potentially relevant facts' if provided, as they are likely related to the current input.\n"
+        "- Prioritize using 'Potentially relevant facts' if provided, as they are likely related to the current input."
     ),
     MessagesPlaceholder(variable_name="chat_history"),
-    HumanMessagePromptTemplate.from_template("{input}") # Original user input
+    HumanMessagePromptTemplate.from_template("{input}")
 ])
-
-# --- MODIFICATION FOR ROUTING_PROMPT ---
-# Explicitly define input_variables for ROUTING_PROMPT
-core_routing_template = PromptTemplate(
-    template=ROUTING_PROMPT_TEMPLATE_STRING,
-    input_variables=["user_facts", "input"] # Explicitly define input variables
-)
+core_routing_template = PromptTemplate(template=ROUTING_PROMPT_TEMPLATE_STRING, input_variables=["user_facts", "input"])
 human_message_prompt_for_routing = HumanMessagePromptTemplate(prompt=core_routing_template)
 ROUTING_PROMPT = ChatPromptTemplate.from_messages([human_message_prompt_for_routing])
-# --- END MODIFICATION FOR ROUTING_PROMPT ---
 
+core_generic_entity_extraction_template = PromptTemplate(template=GENERIC_ENTITY_EXTRACTION_TEMPLATE_STRING, input_variables=["input"])
+human_message_prompt_for_generic_extraction = HumanMessagePromptTemplate(prompt=core_generic_entity_extraction_template)
+GENERIC_ENTITY_EXTRACTION_PROMPT = ChatPromptTemplate.from_messages([human_message_prompt_for_generic_extraction])
 
-# --- MODIFICATION FOR GENERIC_ENTITY_EXTRACTION_PROMPT ---
-# Explicitly define the PromptTemplate and HumanMessagePromptTemplate 
-# for GENERIC_ENTITY_EXTRACTION_PROMPT to ensure correct input variable handling.
+SPOTIFY_ACTION_PARAM_EXTRACTION_PROMPT_OBJ = PromptTemplate(template=SPOTIFY_ACTION_PARAM_EXTRACTION_TEMPLATE_STRING, input_variables=["input"])
+CHAT_SPOTIFY_ACTION_PARAM_EXTRACTION_PROMPT = ChatPromptTemplate.from_messages([HumanMessagePromptTemplate(prompt=SPOTIFY_ACTION_PARAM_EXTRACTION_PROMPT_OBJ)])
 
-# 1. Create the core PromptTemplate, explicitly stating "input" is the only variable.
-core_generic_entity_extraction_template = PromptTemplate(
-    template=GENERIC_ENTITY_EXTRACTION_TEMPLATE_STRING,
-    input_variables=["input"] # Explicitly define the input variable
-)
+GMAIL_SEND_PARAM_EXTRACTION_PROMPT_OBJ = PromptTemplate(template=GMAIL_SEND_PARAM_EXTRACTION_TEMPLATE_STRING, input_variables=["input"])
+CHAT_GMAIL_SEND_PARAM_EXTRACTION_PROMPT = ChatPromptTemplate.from_messages([HumanMessagePromptTemplate(prompt=GMAIL_SEND_PARAM_EXTRACTION_PROMPT_OBJ)])
 
-# 2. Wrap it in a HumanMessagePromptTemplate.
-human_message_prompt_for_generic_extraction = HumanMessagePromptTemplate(
-    prompt=core_generic_entity_extraction_template
-)
+GMAIL_SEARCH_PARAM_EXTRACTION_PROMPT_OBJ = PromptTemplate(template=GMAIL_SEARCH_PARAM_EXTRACTION_TEMPLATE_STRING, input_variables=["input"])
+CHAT_GMAIL_SEARCH_PARAM_EXTRACTION_PROMPT = ChatPromptTemplate.from_messages([HumanMessagePromptTemplate(prompt=GMAIL_SEARCH_PARAM_EXTRACTION_PROMPT_OBJ)])
 
-# 3. Create the ChatPromptTemplate from this single message prompt.
-GENERIC_ENTITY_EXTRACTION_PROMPT = ChatPromptTemplate.from_messages(
-    [human_message_prompt_for_generic_extraction]
-)
-# --- END MODIFICATION ---
-
-
-if __name__ == "__main__":
-    print("--- ATHENA SYSTEM PROMPT (Partial) ---")
-    print(ATHENA_SYSTEM_PROMPT.format_messages(
-        user_facts_context="{\"user_name\": \"Test User\"}",
-        retrieved_facts_context="{\"location\": \"Test Location\"}",
-        chat_history=[],
-        input="Hello there!"
-    )[0].content[:300] + "...")
-    
-    print("\n--- ROUTING PROMPT (Testing explicit input_variables) ---")
-    if ROUTING_PROMPT.messages and isinstance(ROUTING_PROMPT.messages[0], HumanMessagePromptTemplate):
-        underlying_routing_prompt = ROUTING_PROMPT.messages[0].prompt
-        if hasattr(underlying_routing_prompt, 'input_variables'):
-            print(f"Input variables for ROUTING_PROMPT's human message: {underlying_routing_prompt.input_variables}")
-    try:
-        # Test with all expected input variables
-        formatted_routing_messages = ROUTING_PROMPT.format_messages(user_facts="{\"location\": \"home\"}", input="My name is Bob.")
-        print(formatted_routing_messages[0].content[:300] + "...")
-        print("Routing prompt formatting successful.")
-    except KeyError as e:
-        print(f"KeyError during ROUTING_PROMPT formatting: {e}")
-    except Exception as e:
-        print(f"An unexpected error during ROUTING_PROMPT formatting: {e}")
-
-
-    print("\n--- GENERIC ENTITY EXTRACTION PROMPT (Testing explicit input_variables and escaped JSON examples) ---")
-    if GENERIC_ENTITY_EXTRACTION_PROMPT.messages and isinstance(GENERIC_ENTITY_EXTRACTION_PROMPT.messages[0], HumanMessagePromptTemplate):
-        underlying_prompt_template = GENERIC_ENTITY_EXTRACTION_PROMPT.messages[0].prompt
-        if hasattr(underlying_prompt_template, 'input_variables'):
-            print(f"Input variables for GENERIC_ENTITY_EXTRACTION_PROMPT's human message: {underlying_prompt_template.input_variables}")
-    
-    test_input_generic = "My daughter Sarah's birthday is on June 10th. She loves chocolate cake. My wife, Jane, and I are planning a party."
-    try:
-        formatted_messages_generic = GENERIC_ENTITY_EXTRACTION_PROMPT.format_messages(input=test_input_generic)
-        print("Formatted GENERIC_ENTITY_EXTRACTION_PROMPT (Partial):")
-        # Print a larger portion to see if escaping is visible
-        print(formatted_messages_generic[0].content[:1500] + "...") 
-        print("Prompt formatting with explicit input_variables and escaped JSON examples seems successful.")
-    except KeyError as e:
-        print(f"KeyError during GENERIC_ENTITY_EXTRACTION_PROMPT formatting: {e}")
-    except Exception as e:
-        print(f"An unexpected error during GENERIC_ENTITY_EXTRACTION_PROMPT formatting: {e}")
+GMAIL_READ_PARAM_EXTRACTION_PROMPT_OBJ = PromptTemplate(template=GMAIL_READ_PARAM_EXTRACTION_TEMPLATE_STRING, input_variables=["input"])
+CHAT_GMAIL_READ_PARAM_EXTRACTION_PROMPT = ChatPromptTemplate.from_messages([HumanMessagePromptTemplate(prompt=GMAIL_READ_PARAM_EXTRACTION_PROMPT_OBJ)])
