@@ -43,7 +43,7 @@ def get_db():
 # --- Streamlit App ---
 
 st.set_page_config(page_title="Athena - ElderCare Companion", layout="wide", initial_sidebar_state="expanded")
-st.title("👵🏽 Athena - Your Caring Companion")
+st.title("Athena - Your Caring Companion")
 st.caption("Powered by LangGraph and Advanced AI Models")
 
 # Initialize session state variables if they don't exist
@@ -77,9 +77,9 @@ if not st.session_state.user_id:
                             location="Not specified yet", 
                             hobbies=[], jobs=[], preferences=[]
                         )
-                        st.toast(f"Welcome, {username_input}! Your new profile has been created.", icon="�")
+                        st.toast(f"Welcome, {username_input}! Your new profile has been created.")
                     else:
-                        st.toast(f"Welcome back, {username_input}!", icon="👋")
+                        st.toast(f"Welcome back, {username_input}!")
                     
                     st.session_state.user_id = user.id
                     st.session_state.username = user.username
@@ -103,7 +103,7 @@ else:
     
     if st.sidebar.button("Clear Chat History", key="clear_chat_streamlit_main"):
         st.session_state.chat_history = []
-        st.toast("Chat history cleared!", icon="🧹")
+        st.toast("Chat history cleared!")
         st.rerun()
 
     def logout():
@@ -114,7 +114,7 @@ else:
 
     st.sidebar.button("Logout", on_click=logout, key="logout_streamlit_main")
 
-    st.header(f"Chat with Athena 💬")
+    st.header(f"Chat with Athena")
 
     # Display existing chat messages
     for message_obj in st.session_state.chat_history: 
@@ -172,7 +172,7 @@ else:
                         st.session_state.last_email_search_results = final_state.get("last_email_search_results")
 
                     if final_state.get("decision_outcome") == "exit":
-                        athena_response_content = "It was lovely chatting with you. Goodbye for now! 👋"
+                        athena_response_content = "It was lovely chatting with you. Goodbye for now! "
                     else:
                         potential_response = final_state.get("response")
                         if isinstance(potential_response, str):
@@ -196,4 +196,4 @@ else:
             athena_response_content = "Error: Response was not a string." 
         st.session_state.chat_history.append(AIMessage(content=athena_response_content))
         
-        st.rerun() 
+        st.rerun()
